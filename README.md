@@ -159,4 +159,172 @@ np.float64(0.02)
 ```Python
 df[['discount']].hist()
 ```
-![]()
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Discount%20Distribution.png)
+
+```python
+#Create missing indicator
+df['discount_missing'] = df['discount'].isnull().astype(int)
+
+#Fill with median
+median_discount = df['discount'].median()
+df['discount'].fillna(median_discount, inplace=True)
+```
+
+**7. Handling Missing Values – Marketing Spend**
+
+Missing values in marketing_spend were addressed using a group-based median imputation strategy to preserve underlying business patterns.
+
+A missing indicator variable (marketing_missing) was created to capture any potential signal associated with absent marketing data.
+
+Instead of applying a global median, missing values were imputed within each product_category group, ensuring that category-specific spending behaviors were maintained.
+
+This approach is more robust and business-aware, as marketing investments typically vary across product categories (e.g., electronics vs. groceries).
+
+Overall, this method improves data quality while maintaining contextual relevance and model interpretability.
+
+```python
+#Missing Indicator
+df['marketing_missing'] = df['marketing_spend'].isnull().astype(int)
+
+df[['marketing_spend']].hist()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Marketing%20Spend%20Distribution.png)
+
+```python
+#Impute Values
+df['marketing_spend'] = df.groupby('product_category')['marketing_spend']\
+                         .transform(lambda x: x.fillna(x.median()))
+```
+
+**8.Target Variable Validation – Sales Revenue**
+
+The sales_revenue column was validated by confirming its calculation as:
+
+```
+df['sales_revenue'] = df['units_sold'] * df['price_per_unit']
+```
+
+This ensures that the target variable accurately reflects total revenue generated per transaction. Verifying this relationship is critical to maintain data integrity and ensure reliable model training.
+
+## FEATURE ENGINEERING
+
+**1. Time-Based Features**
+
+Time-based features were created to capture temporal patterns in sales behavior.
+
+The dataset was first sorted by date to ensure chronological consistency, which is critical for time-dependent features and any future time series modeling.
+
+The following features were extracted from the date column:
+
+- year: Captures long-term trends over time
+- day_of_week: Identifies weekday patterns in sales
+- quarter: Helps model seasonal business cycles
+- is_weekend: Binary indicator to distinguish weekend vs. weekday behavior
+
+These features enable the model to learn seasonality, weekly trends, and temporal shifts in customer purchasing patterns.
+
+```Python
+# Ensure date is sorted (VERY IMPORTANT for time features)
+df = df.sort_values(by='date')
+
+# Extract time features
+df['year'] = df['date'].dt.year
+df['day_of_week'] = df['date'].dt.dayofweek
+df['quarter'] = df['date'].dt.quarter
+df['is_weekend'] = df['day_of_week'].apply(lambda x: 1 if x >= 5 else 0)
+```
+
+**2. Lag Features (Core of Forecasting)**
+
+Lag features were engineered to incorporate historical sales information, which is essential for time-aware predictive modeling.
+
+The dataset was sorted by store_id, product_category, and date to maintain proper temporal order within each group.
+
+Lag features were created per group (store + product category) to avoid data leakage and ensure accurate temporal relationships:
+
+- lag_1: Sales revenue from the previous day
+- lag_7: Sales revenue from the same day in the previous week
+- lag_14: Sales revenue from two weeks prior
+
+This approach reflects real-world sales dynamics:
+
+- Recent sales trends influence current performance
+- Weekly patterns capture recurring customer behavior
+
+These features form the core foundation for forecasting, enabling the model to learn from historical dependencies rather than relying solely on static inputs.
+
+```python
+df = df.sort_values(by=['store_id', 'product_category', 'date'])
+
+df['lag_1'] = df.groupby(['store_id', 'product_category'])['sales_revenue'].shift(1)
+df['lag_7'] = df.groupby(['store_id', 'product_category'])['sales_revenue'].shift(7)
+df['lag_14'] = df.groupby(['store_id', 'product_category'])['sales_revenue'].shift(14)
+```
+
+**3. Rolling Features (Trend Awareness)**
+
+Rolling features were engineered to capture short-term trends and variability in sales over time.
+
+The following features were created using a 7-day rolling window within each store_id and product_category group:
+
+- rolling_mean_7: Average sales revenue over the past 7 days
+- rolling_std_7: Standard deviation of sales revenue over the past 7 days
+
+A shift(1) was applied before the rolling calculation to ensure that only past data is used, preventing data leakage and maintaining proper forecasting integrity.
+
+These features provide:
+- Trend signals (via rolling mean)
+- Volatility insights (via rolling standard deviation)
+
+After generating lag and rolling features, rows with resulting missing values (due to shifting and windowing) were removed to ensure a clean dataset for modeling.
+
+This step enhances the model’s ability to understand recent performance trends and fluctuations, which are critical for accurate time-series forecasting.
+
+**4. Business-Driven Features**
+
+Domain-specific features were engineered to incorporate business logic and improve the model’s ability to capture real-world revenue dynamics.
+
+**Revenue Drivers**
+
+Both unit-level and transaction-level pricing features were created to reflect pricing strategy and its impact on revenue:
+- price_after_discount_unit: Effective price per unit after applying discount
+- net_revenue: Adjusted revenue after discount
+
+```Pyhton
+df['price_after_discount_unit'] = df['price_per_unit'] * (1 - df['discount'])
+df['net_revenue'] = df['sales_revenue'] * (1 - df['discount'])
+```
+These features allow the model to learn price sensitivity and discount-driven purchasing behavior.
+
+**Discount Intensity**
+
+discount_intensity was introduced as:
+```python
+Discount × Units Sold
+```
+This captures the magnitude of discount impact, combining both pricing strategy and sales volume.
+```python
+df['discount_intensity'] = df['discount'] * df['units_sold']
+```
+
+**Marketing Efficiency**
+
+marketing_efficiency was defined as: Revenue generated per unit of marketing spend
+
+A small constant (+1) was added to the denominator to prevent division-by-zero errors.
+```python
+df['marketing_efficiency'] = df['sales_revenue'] / (df['marketing_spend'] + 1)
+```
+This feature helps quantify return on marketing investment (ROMI).
+
+**Demand Intensity**
+
+avg_unit_price was calculated as: Revenue per unit sold
+
+A small constant (+1) ensures numerical stability.
+```python
+df['avg_unit_price'] = df['sales_revenue'] / (df['units_sold'] + 1)
+```
+This provides insight into effective selling price and demand behavior under varying conditions.
+
+Overall, these features embed business intuition into the dataset, enabling the model to move beyond raw data and learn economic relationships driving sales performance.
