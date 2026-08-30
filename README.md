@@ -613,3 +613,346 @@ The scaler is:
 - Applied to test data using the same transformation
 
 Scaling was selectively applied to continuous numerical features to standardize their ranges while preserving the interpretability of binary and categorical variables. The scaler was fit exclusively on the training data and then applied to the test set to prevent data leakage and ensure consistent transformation.
+
+## MODELING APPROACH
+
+**1. LINEAR REGRESSION**
+```python
+#train using scaled data:
+from sklearn.linear_model import LinearRegression
+lr_model = LinearRegression()
+lr_model.fit(x_train_scaled, y_train)
+```
+```python
+#Make Predictions
+y_pred_lr = lr_model.predict(x_test_scaled)
+```
+```python
+Model Evaulation
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score 
+import numpy as np 
+mae = mean_absolute_error(y_test, y_pred_lr) 
+rmse = np.sqrt(mean_squared_error(y_test, y_pred_lr)) 
+r2 = r2_score(y_test, y_pred_lr)
+
+print("Linear Regression Results:") 
+print("MAE:", mae) 
+print("RMSE:", rmse) 
+print("R2 Score:", r2)
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Linear%20Regression.png)
+
+**Summary of Results**
+- MAE: 16,183
+- RMSE: 26,993
+- R² Score: 0.844
+
+**Interpretation**
+
+1.	R² = 0.844 : The model explains approximately 84.4% of the variance in sales_revenue, indicating a strong overall fit.
+
+2.	MAE (~16K): On average, predictions deviate from actual revenue by about $16,183.
+
+3.	RMSE (~27K): Penalizes larger errors more heavily, suggesting that while average errors are moderate, there are some larger deviations.
+
+**What This Means (Business Perspective)**
+
+The model captures the major drivers of revenue effectively, making it suitable for:
+- Forecasting trends
+- Supporting strategic decisions
+
+However, the gap between MAE and RMSE indicates occasional large prediction errors, which may be driven by:
+- Sudden demand spikes
+- Promotions or external factors not fully captured
+
+The Linear Regression model demonstrates strong predictive performance, explaining a substantial portion of the variance in sales revenue. While average prediction errors are within a reasonable range, the higher RMSE suggests the presence of occasional large deviations, indicating opportunities for further model refinement or the inclusion of additional explanatory variables.
+
+**Extract Coefficients (Very Valuable)**
+```python
+#This is where Linear Regression shines — interpretability:
+coefficients = pd.DataFrame({
+    'Feature': x_train_scaled.columns,
+    'Coefficient': lr_model.coef_
+}).sort_values(by='Coefficient', ascending=False)
+coefficients.head(10)
+```
+
+**Top Positive Drivers of Revenue**
+| Feature | Coefficient |
+|---|---:|
+| price_per_unit | 70,809 |
+| units_sold | 32,966 |
+| rolling_mean_7 | 1,026 |
+| season_Rainy | 824 |
+| discount_missing | 621 |
+| season_Post-Rainy | 550 |
+| product_category_Groceries | 549 |
+| marketing_missing | 429 |
+| store_id_5 | 253 |
+| discount_intensity | 244 |
+
+**Interpretation**
+
+1.	price_per_unit (strongest driver): A $1 increase in price (holding other factors constant) is associated with a ~$70K increase in revenue, indicating pricing power dominates revenue generation.
+
+2.	units_sold: As expected, higher sales volume significantly increases revenue.
+
+3.	rolling_mean_7: Recent sales trends positively influence current revenue, validating the importance of temporal momentum.
+
+4.	seasonality (Rainy / Post-Rainy): Certain seasons contribute positively, suggesting demand patterns vary over time.
+
+5.	product_category_Groceries: Indicates this category tends to generate higher revenue relative to the baseline category.
+
+6.	Missing indicators (discount_missing, marketing_missing): These capturing mechanisms may reflect systematic patterns in data absence, which the model is leveraging.
+
+7.	store_id_5: This specific store outperforms the baseline, indicating location-specific effects.
+
+8.	discount_intensity: Higher discount levels still contribute positively, likely via volume-driven revenue lift.
+
+The coefficient magnitudes reflect the relative influence of features on revenue; however, they should be interpreted cautiously due to differences in feature scaling and potential correlations among predictors. While Linear Regression provides valuable directional insights, these relationships represent associations rather than strict causation.
+
+**2. RANDOM FOREST**
+```python
+#Train Model
+from sklearn.ensemble import RandomForestRegressor
+
+rf_model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=10,
+    random_state=42,
+    n_jobs=-1
+)
+rf_model.fit(x_train, y_train)
+```
+```python
+#Predict
+y_pred_rf = rf_model.predict(x_test)
+```
+```python
+#Model Evaluation
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+r2_rf = r2_score(y_test, y_pred_rf)
+
+print("Random Forest Results:")
+print("MAE:", mae_rf)
+print("RMSE:", rmse_rf)
+print("R2 Score:", r2_rf)
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Random%20Forest.png)
+
+**Summary of Results**
+- MAE: 1,203
+- RMSE: 5,366
+- R² Score: 0.994
+
+**Interpretation**
+
+1.	R² = 0.994: The model explains 99.4% of the variance in sales_revenue, indicating an extremely strong fit.
+
+2.	MAE (~1.2K): Predictions are, on average, off by only about $1,203, which is significantly lower than Linear Regression.
+
+3.	RMSE (~5.3K): Even larger errors are relatively small compared to the scale of revenue, showing high prediction stability.
+
+**Comparison vs Linear Regression**
+| Metric | Linear Regression | Random Forest |
+|---|---:|---:|
+| MAE | 16,183 | 1,203 |
+| RMSE | 26,993 | 5,366 |
+| R² | 0.844 | 0.994 |
+
+The Random Forest model dramatically outperforms Linear Regression across all metrics.
+
+**Critical Insight (Very Important)**
+
+While performance is exceptionally high, this raises a red flag:
+
+Such a high R² (≈0.99) may indicate:
+- Overfitting, especially with:
+- Lag features
+- Rolling statistics
+- Many encoded variables
+
+The model may be capturing patterns too specific to training data
+
+**What This Means (Business Perspective)**
+
+The model is highly accurate for prediction tasks
+
+Suitable for:
+- Short-term forecasting
+- Operational decision-making
+
+But may not generalize as well to completely unseen future conditions
+
+The Random Forest model achieved significantly higher predictive accuracy compared to Linear Regression, capturing nearly all variability in sales revenue. However, the exceptionally high performance may indicate potential overfitting, and results should be interpreted with caution when generalizing to future or unseen data.
+
+**Extract Coefficients (Very Valuable)**
+```python
+#This is where Random Forest shines — interpretability:
+feature_importance = pd.DataFrame({
+    'Feature': x_test.columns,
+    'Importance': rf_model.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+feature_importance.head(10)
+```
+
+**Top Drivers of Revenue**
+| Feature | Importance |
+|---|---:|
+| units_sold | 0.5203 |
+| price_per_unit | 0.4792 |
+| discount_intensity | 0.000095 |
+| price_after_discount_unit | 0.000085 |
+| economic_index | 0.000048 |
+| rolling_std_7 | 0.000047 |
+| marketing_spend | 0.000039 |
+| lag_14 | 0.000032 |
+| rolling_mean_7 | 0.000027 |
+| lag_1 | 0.000021 |
+
+**Interpretation**
+
+units_sold (52%) and price_per_unit (48%) dominate the model → Together, they explain ~99.95% of total feature importance, meaning:
+- Revenue is almost entirely driven by volume × price dynamics
+- This aligns directly with the business formula:
+```
+Revenue ≈ Units Sold × Price
+```
+All other variables contribute negligibly → Features like marketing spend, seasonality, lag variables, and economic indicators have minimal marginal impact once price and volume are known.
+
+**Critical Insight (Very Important)**
+
+This distribution suggests the model is heavily relying on near-direct drivers of the target:
+- units_sold and price_per_unit are mechanically linked to revenue
+
+This is not leakage, but it does mean:
+- The model is learning a relationship that is almost deterministic
+- Additional features add little incremental predictive power
+
+**Business Interpretation**
+
+The model confirms a fundamental truth:
+- Revenue is primarily a function of pricing and sales volume
+
+Secondary factors (marketing, seasonality, economy):
+- Likely influence revenue indirectly by affecting units sold or pricing
+- But do not independently drive revenue once those are included
+
+Feature importance analysis shows that revenue is overwhelmingly driven by units sold and price per unit, with all other variables contributing marginally. This indicates that the model is primarily capturing the fundamental revenue relationship, while additional features provide limited incremental predictive value.
+
+**3. XGBOOST**
+```python
+#Train Model
+from xgboost import XGBRegressor
+xgb_model = XGBRegressor(
+    n_estimators=200,
+    learning_rate=0.05,
+    max_depth=6,
+    random_state=42
+)
+xgb_model.fit(x_train, y_train)
+```
+```python
+#Predict
+y_pred_xgb = xgb_model.predict(x_test)
+```
+```python
+#Evaluate
+mae_xgb = mean_absolute_error(y_test, y_pred_xgb)
+rmse_xgb = np.sqrt(mean_squared_error(y_test, y_pred_xgb))
+r2_xgb = r2_score(y_test, y_pred_xgb)
+
+print("XGBoost Results:")
+print("MAE:", mae_xgb)
+print("RMSE:", rmse_xgb)
+print("R2 Score:", r2_xgb)
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/XGBOOST.png)
+
+**Summary of Results**
+- MAE: 1,419
+- RMSE: 6,683
+- R² Score: 0.990
+
+**Interpretation**
+
+1.	R² = 0.990 → The model explains 99.0% of the variance in sales_revenue, indicating excellent predictive performance.
+
+2.	MAE (~1.4K) → On average, predictions deviate by about $1,419, which is very low relative to revenue scale.
+
+3.	RMSE (~6.7K) → Slightly higher than Random Forest, indicating some larger errors, but still well-controlled.
+
+**Comparison Across Models**
+| Metric | Linear Regression | Random Forest | XGBoost |
+|---|---:|---:|---:|
+| MAE | 16,183 | 1,203 | 1,419 |
+| RMSE | 26,993 | 5,366 | 6,683 |
+| R² | 0.844 | 0.994 | 0.990 |
+
+**Performance Ranking:**
+
+1.	Random Forest (Best)
+
+2.	XGBoost (Very close second)
+
+3.	Linear Regression (Baseline)
+
+**Key Insights**
+
+XGBoost significantly outperforms Linear Regression, capturing nonlinear relationships and interactions.
+
+Compared to Random Forest:
+- Slightly higher error metrics
+- Still very competitive and robust
+
+Both tree-based models confirm:
+- The problem has strong nonlinear structure
+- Feature interactions matter
+
+**Critical Observation**
+
+Similar to Random Forest, very high R² suggests:
+- The model is leveraging strong deterministic signals (e.g., price × units)
+- Potential overfitting risk still exists, though XGBoost typically generalizes better due to boosting
+
+**Business Interpretation**
+
+XGBoost provides:
+- Highly accurate forecasts
+- Better handling of complex relationships
+
+Suitable for:
+- Production-grade prediction systems
+- Revenue forecasting under varying conditions
+
+The XGBoost model achieved excellent predictive performance, closely matching the Random Forest model while significantly outperforming Linear Regression. Its ability to capture nonlinear relationships and feature interactions makes it a strong candidate for robust revenue forecasting, although the high accuracy warrants careful validation to ensure generalizability.
+
+**Extract Coefficients (Very Valuable)**
+```python
+#This is where Random Forest shines — interpretability:
+feature_importance = pd.DataFrame({
+    'Feature': x_test.columns,
+    'Importance': xgb_model.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+feature_importance.head(10)
+```
+
+**Top Drivers of Revenue**
+| Feature | Importance |
+|---|---:|
+| price_per_unit | 0.4946 |
+| units_sold | 0.4891 |
+| store_id_7 | 0.0034 |
+| holiday_flag | 0.0029 |
+| discount | 0.0012 |
+| season_Harmattan | 0.0011 |
+| discount_intensity | 0.0010 |
+| store_id_8 | 0.0008 |
+| store_location_Port Harcourt | 0.0008 |
+| month | 0.0005 |
+
+
+
