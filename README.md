@@ -328,3 +328,288 @@ df['avg_unit_price'] = df['sales_revenue'] / (df['units_sold'] + 1)
 This provides insight into effective selling price and demand behavior under varying conditions.
 
 Overall, these features embed business intuition into the dataset, enabling the model to move beyond raw data and learn economic relationships driving sales performance.
+
+## EXPLORATORY DATA ANALYSIS (EDA)
+
+**STEP 1: KPIs (Key Performance Indicator**
+
+**Total Revenue**
+```python
+total_sales_revenue = df['sales_revenue'].sum()
+print(f"Total Sales Revenue: {total_sales_revenue:.2f}")
+Total Sales Revenue: 2362239427.33
+```
+
+**Total Net Revenue**
+```python
+total_net_revenue = df['net_revenue'].sum()
+print(f"Total Net Revenue: {total_net_revenue:.2f}")
+Total Net Revenue: 1987564418.28
+```
+
+**Revenue Reduction due to Discounts**
+```python
+revenue_reduction = total_sales_revenue - total_net_revenue
+print(f"Revenue Reduction due to Discounts: {revenue_reduction:.2f}")
+Revenue Reduction due to Discounts: 374675009.05
+```
+
+**Total Unit Sold**
+```python
+total_units_sold = df['units_sold'].sum()
+print(f"Total Units Sold: {total_units_sold}")
+Total Units Sold: 9299121
+```
+
+**STEP 2: Target Variable Analysis (Sales Revenue)**
+
+**Distribution**
+```python
+import matplotlib.pyplot as plt
+df['sales_revenue'].hist(bins=50)
+plt.title('Sales Revenue Distribution')
+plt.show()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Sales%20Revenue%20Distribution.png)
+
+The sales_revenue variable exhibits a right-skewed distribution, with the majority of observations concentrated at lower values and a long tail extending toward higher revenue values.
+
+**Summary Statistics**
+```Python
+df['sales_revenue'].describe()
+```
+```
+Count: 35,800
+Mean: 65,984
+Median (50%): 52,073
+Standard Deviation: 55,949
+Minimum: 64.91
+25th Percentile: 25,015
+75th Percentile: 90,505
+Maximum: 510,570
+```
+**Observation:** The mean exceeds the median, indicating positive skewness. The wide range and high standard deviation suggest substantial variability in sales revenue across observations.
+
+**STEP 3: Time Series Analysis**
+
+**Daily Trend**
+```python
+df.groupby('day_of_week')['sales_revenue'].sum().plot(figsize=(12,5))
+plt.title('Daily Sales Trend')
+plt.show()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Daily%20Sales%20Trend.png)
+
+**Observation:** Sales revenue remains relatively stable during weekdays (Monday–Friday), with a noticeable increase on Saturday and Sunday, indicating higher revenue concentration over the weekend.
+
+**Average Monthly Sales**
+```python
+df['month'] = df['date'].dt.month
+df.groupby('month')['sales_revenue'].mean().plot(kind='line')
+plt.title('Average Monthly Sales')
+plt.show()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Average%20Monthly%20Sales.png)
+
+**Observation:** Sales revenue shows a gradual upward trend throughout the year, with a significant spike in December, indicating strong seasonality and year-end sales concentration.
+
+**STEP 4: Category & Store Performance**
+
+**Product Category**
+```python
+df.groupby('product_category')['sales_revenue'].sum().sort_values().plot(kind='bar')
+plt.title('Revenue by Product Category')
+plt.show()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Revenue%20By%20Product%20Category.png)
+
+**Observation:** Electronics contributes the highest share of total revenue, followed by Home and Clothing. Groceries generate the lowest revenue among all categories.
+
+**Store Location**
+```python
+df.groupby('store_location')['sales_revenue'].mean().plot(kind='bar')
+plt.title('Average Revenue by Store')
+plt.show()
+```
+![](https://github.com/Oluwaseun2024-ctrl/Sales-Revenue-Prediction-And-Optimization/blob/main/Average%20Revenue%20By%20Store%20Location.png)
+
+**Observation:** Average sales revenue is relatively consistent across all locations, with Lagos and Abuja showing marginally higher values. Port Harcourt records the lowest average, though the variation across locations is minimal.
+
+**STEP 5: Pricing & Discount Impact**
+
+**Discount vs Revenue**
+```python
+df[['discount', 'sales_revenue']].corr()
+```
+|              | discount | sales_revenue |
+|--------------|----------|---------------|
+| discount     | 1.000000 | 0.121043      |
+| sales_revenue| 0.121043 | 1.000000      |
+
+**Observation:** The correlation between discount and sales revenue is positive but weak (0.12), indicating that higher discounts are associated with a slight increase in revenue, though the relationship is not strong.
+
+**Price vs Units Sold**
+```python
+df[['price_per_unit', 'units_sold']].corr()
+```
+|              | price_per_unit | units_sold |
+|--------------|----------------|------------|
+| price_per_unit | 1.000000       | 0.004562   |
+| units_sold     | 0.004562       | 1.000000   |
+
+**Observation:** There is no meaningful linear relationship between price per unit and units sold, as indicated by the near-zero correlation. This suggests that changes in price do not significantly impact sales volume in a linear manner.
+
+**Note:** The near-zero correlation between price and units sold may seem counterintuitive, but it does not indicate an error in the analysis. Instead, it suggests that within this dataset, price alone does not have a strong linear influence on sales volume—likely due to factors such as limited price variation, aggregation across different products, and the influence of other drivers like seasonality and demand patterns.
+
+**STEP 6: Marketing Impact**
+
+**Marketing Spend vs Revenue**
+```python
+df[['marketing_spend', 'sales_revenue']].corr()
+```
+|                 | marketing_spend | sales_revenue |
+|-----------------|-----------------|---------------|
+| marketing_spend | 1.000000        | 0.102915      |
+| sales_revenue   | 0.102915        | 1.000000      |
+
+**Observation:** There is a weak positive relationship between marketing spend and sales revenue. This suggests that higher marketing investment is associated with a slight increase in revenue, but the effect is not strong.
+
+**Note:** The weak correlation does not imply that marketing is ineffective; rather, it indicates that marketing spend alone does not strongly explain revenue changes in this aggregated dataset. Other factors such as timing, campaign quality, product demand, and seasonality may play a more significant role, and the impact of marketing may not be strictly linear or immediate.
+
+## ENCODING CATEGORICAL COLUMNS
+
+To prepare the dataset for modeling, categorical features were converted into numerical format using One-Hot Encoding.
+```python
+#One-Hot Encoding
+df = pd.get_dummies(
+    df,
+    columns=['product_category', 'store_location', 'season'],
+    drop_first=True
+)
+```
+Categorical variables were encoded using one-hot encoding to transform them into a machine-readable format. One category from each feature was dropped to serve as a baseline, preventing redundancy and ensuring stable model estimation.
+
+**Encoding Store ID**
+```python
+df = pd.get_dummies(df, columns=['store_id'], drop_first=True)
+```
+The store_id variable was treated as a categorical feature and encoded using one-hot encoding to capture store-level differences in performance. One category was dropped to act as a baseline, ensuring efficient and stable model estimation.
+
+## FEATURE SELECTION PREP
+
+**Target Variable Definition**
+
+The target variable for the modeling process was defined as:
+```python
+y = df['sales_revenue']
+```
+This variable represents the total revenue generated and serves as the dependent variable that the machine learning models aim to predict.
+
+**Removing Data Leakage (Critical Step)**
+```python
+# REMOVED THESE:
+cols_to_drop = [
+    'sales_revenue',        # target
+    'net_revenue',          # derived from target
+    'marketing_efficiency', # uses target → leakage
+    'avg_unit_price'        # uses target → leakage
+]
+x = df.drop(columns=cols_to_drop)
+```
+Data leakage occurs when input features contain information that would not be available at prediction time or are directly derived from the target. Including such variables leads to overly optimistic model performance and poor real-world generalization.
+
+Columns that directly or indirectly incorporate the target variable were removed to prevent data leakage. This ensures that model performance remains realistic and generalizable, reflecting true predictive capability rather than artificially inflated accuracy.
+
+**Removing Non-Useful Columns**
+```python
+# Drop raw date column
+x = x.drop(columns=['date'])
+```
+The raw date column was removed as it does not provide usable information in its original format. Without proper feature engineering (e.g., extracting temporal components), it would not contribute meaningfully to model performance.
+
+## TRAIN TEST SPLIT
+```python
+# Step 1: Ensure data is sorted
+df = df.sort_values('date')
+```
+```python
+# Step 2: Align x and y
+x = x.loc[df.index]
+y = y.loc[df.index]
+```
+```python
+# Step 3: Time-based split (80% train, 20% test)
+split_index = int(len(x) * 0.8)
+
+x_train = x.iloc[:split_index]
+x_test  = x.iloc[split_index:]
+
+y_train = y.iloc[:split_index]
+y_test  = y.iloc[split_index:]
+```
+
+This dataset contains temporal structure (date, lag features, rolling metrics), making it a time series prediction problem.
+
+A random split would shuffle observations, allowing the model to learn from future data → data leakage.
+
+The time-based split ensures:
+
+- Training uses only historical data
+- Testing simulates future, unseen data
+
+A time-based split was used instead of random sampling to preserve the chronological order of observations. This approach prevents data leakage and ensures that model evaluation reflects real-world forecasting conditions, where predictions are made on future data not available during training.
+
+## SCALING
+```python
+# Creating scaled copies
+x_train_scaled = x_train.copy()
+x_test_scaled = x_test.copy()
+```
+```python
+# Define numerical columns to scale
+num_cols = [
+    'units_sold',
+    'price_per_unit',
+    'discount',
+    'marketing_spend',
+    'economic_index',
+    'lag_1',
+    'lag_7',
+    'lag_14',
+    'rolling_mean_7',
+    'rolling_std_7',
+    'price_after_discount_unit',
+    'discount_intensity'
+]
+```
+```python
+# Apply scaling
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+x_train_scaled[num_cols] = scaler.fit_transform(x_train[num_cols])
+x_test_scaled[num_cols] = scaler.transform(x_test[num_cols])
+```
+
+Standardization rescales numerical features to have:
+- Mean = 0
+- Standard deviation = 1
+
+Scaling is applied only to continuous numerical variables because:
+- These features vary in magnitude and units
+- Many models (e.g., linear regression, KNN, SVM) are scale-sensitive
+
+The following are excluded from scaling:
+- One-hot encoded variables (0/1)
+- Binary indicators
+- Encoded categorical features
+
+Scaling them would:
+- Distort their meaning
+- Reduce interpretability
+- Provide no modeling benefit
+
+The scaler is:
+- Fit on training data only → prevents leakage
+- Applied to test data using the same transformation
+
+Scaling was selectively applied to continuous numerical features to standardize their ranges while preserving the interpretability of binary and categorical variables. The scaler was fit exclusively on the training data and then applied to the test set to prevent data leakage and ensure consistent transformation.
