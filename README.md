@@ -1088,86 +1088,103 @@ Very high R² (≈0.99) suggests: Model may be too tailored to observed patterns
 - Time-based split reduces leakage risk
 - Results are still valid but should be interpreted cautiously
 
-3. Correlation vs Reality
-Earlier findings (e.g., weak price vs units correlation) may seem counterintuitive
-But:
-•	Lack of correlation ≠ lack of importance
-•	Multivariate models capture combined effects, not isolated relationships
+**3. Correlation vs Reality**
 
-7. Final Conclusion
+Earlier findings (e.g., weak price vs units correlation) may seem counterintuitive. But:
+- Lack of correlation ≠ lack of importance
+- Multivariate models capture combined effects, not isolated relationships
+
+**7. Final Conclusion**
+
 The modeling pipeline is methodologically sound:
-•	Proper leakage handling
-•	Time-based validation
-•	Correct preprocessing
+- Proper leakage handling
+- Time-based validation
+- Correct preprocessing
+
 Best Model: Random Forest
+
 Most Insightful Model: Linear Regression (interpretability)
+
 The analysis reveals that sales revenue is overwhelmingly driven by core transactional variables—units sold and price per unit—while other factors such as marketing, seasonality, and economic conditions play a secondary, indirect role. Advanced models like Random Forest and XGBoost achieve near-perfect predictive performance by capturing this strong underlying relationship, though their results should be interpreted with awareness of potential overfitting and the inherently deterministic nature of the target variable.
 
-BUSINESS RECOMMENDATIONS
-1. Prioritize Pricing Optimization
-•	Implement data-driven pricing strategies (e.g., dynamic pricing, price elasticity testing)
-•	Continuously test price points to identify revenue-maximizing thresholds
-•	Avoid arbitrary pricing decisions—small adjustments can produce significant revenue impact
+##BUSINESS RECOMMENDATIONS
 
-2. Focus on Increasing Sales Volume
-•	Strengthen distribution and product availability to prevent stockouts
-•	Expand sales channels (online, retail partnerships, regional expansion)
-•	Improve customer acquisition and retention strategies to drive consistent demand
+**1. Prioritize Pricing Optimization**
+- Implement data-driven pricing strategies (e.g., dynamic pricing, price elasticity testing)
+- Continuously test price points to identify revenue-maximizing thresholds
+- Avoid arbitrary pricing decisions—small adjustments can produce significant revenue impact
 
-3. Reframe Marketing Strategy
-•	Shift from spend-based marketing to performance-based marketing
-•	Track and optimize for:
-o	Conversion rate
-o	Revenue per campaign
-•	Invest only in campaigns that demonstrably increase units sold
+**2. Focus on Increasing Sales Volume**
+- Strengthen distribution and product availability to prevent stockouts
+- Expand sales channels (online, retail partnerships, regional expansion)
+- Improve customer acquisition and retention strategies to drive consistent demand
 
-4. Use Discounts Strategically
-•	Avoid over-reliance on discounting as a growth strategy
-•	Apply discounts selectively for:
-o	Inventory clearance
-o	Low-demand periods
-•	Ensure discounts increase total revenue, not just sales volume
+**3. Reframe Marketing Strategy**
 
-5. Leverage Seasonal and Holiday Trends
-•	Align promotions and inventory planning with peak demand periods
-•	Use historical patterns to:
-o	Forecast demand
-o	Optimize staffing and supply chain decisions
+Shift from spend-based marketing to performance-based marketing. Track and optimize for:
+- Conversion rate
+- Revenue per campaign
+- Invest only in campaigns that demonstrably increase units sold
 
-6. Optimize Store-Level Performance
-•	Identify high-performing stores and replicate their strategies
-•	Investigate underperforming locations and adjust:
-o	Pricing
-o	Product mix
-o	Local marketing efforts
+**4. Use Discounts Strategically
 
-7. Align Strategy with Core Revenue Drivers
-•	Recognize that revenue is primarily driven by:
-o	Units Sold
-o	Price per Unit
-•	All business initiatives (marketing, discounts, expansion) should be evaluated based on how effectively they impact these two core drivers
+Avoid over-reliance on discounting as a growth strategy. Apply discounts selectively for:
+- Inventory clearance
+- Low-demand periods
+- Ensure discounts increase total revenue, not just sales volume
+
+**5. Leverage Seasonal and Holiday Trends**
+
+Align promotions and inventory planning with peak demand periods. Use historical patterns to:
+- Forecast demand
+- Optimize staffing and supply chain decisions
+
+**6. Optimize Store-Level Performance**
+Identify high-performing stores and replicate their strategies. Investigate underperforming locations and adjust:
+- Pricing
+- Product mix
+- Local marketing efforts
+
+**7. Align Strategy with Core Revenue Drivers**
+
+Recognize that revenue is primarily driven by:
+- Units Sold
+- Price per Unit
+
+All business initiatives (marketing, discounts, expansion) should be evaluated based on how effectively they impact these two core drivers
+
 The business should concentrate on optimizing price and maximizing sales volume, while treating marketing, discounts, and seasonal tactics as supporting levers that influence these primary drivers.
 
-MODEL DEPLOYMENT
-The trained Random Forest model was serialized and deployed using Streamlit to provide an interactive interface where users can input key business variables (e.g., units sold, price, discounts, seasonality) and obtain real-time sales revenue predictions, enabling practical, data-driven decision-making.
-Save the Random Forest Model
+## MODEL DEPLOYMENT
+
+The trained Random Forest model was serialized and deployed using Streamlit to provide an interactive interface where users can input key business variables (e.g., units sold, price, discounts, seasonality) and 
+obtain real-time sales revenue predictions, enabling practical, data-driven decision-making.
+
+**Save the Random Forest Model**
+```python
 import joblib
 # Save the trained Random Forest model
 joblib.dump(rf_model, 'random_forest_model.pkl')
-
+```
+```python
 Download the Model
 from google.colab import files
 files.download('random_forest_model.pkl')
-
+```
+```python
 Save Feature Columns
 This prevents deployment errors later (very important for Streamlit):
 # Save feature column order
 joblib.dump(x_train.columns.tolist(), 'model_features.pkl')
-
+```
+```python
 Download:
 files.download('model_features.pkl')
+```
 
-COMPLETE STREAMLIT APP
+## COMPLETE STREAMLIT APP
+
+```python
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -1263,43 +1280,56 @@ if st.button("Predict Revenue"):
 
     # Display
     st.success(f"💰 Predicted Revenue: ${prediction[0]:,.2f}")
+```
 
-HOW TO RUN THE APP
+## HOW TO RUN THE APP
+
 To access and use the deployed Sales Revenue Prediction app, follow the steps below:
-1. Open the Application
+
+**1. Open the Application**
+
 Navigate to the live Streamlit app using the link below:
+
 https://salesrevenuepredictionandoptimization.streamlit.app/
 
-2. Input Required Features
+**2. Input Required Features**
+
 Once the app loads, you will see input fields for key business variables. Provide values for the required features, which may include:
-•	Units sold
-•	Price per unit
-•	Discount and discount intensity
-•	Marketing spend
-•	Season and month
-•	Store and product-related attributes
+- Units sold
+- Price per unit
+- Discount and discount intensity
+- Marketing spend
+- Season and month
+- Store and product-related attributes
+
 Ensure that the inputs reflect realistic business scenarios for accurate predictions.
 
-3. Run Prediction
-After entering the required values:
-•	Click the Predict (or equivalent) button
-•	The system will process your inputs using the trained Random Forest model
+**3. Run Prediction**
 
-4. View Results
+After entering the required values:
+- Click the Predict (or equivalent) button
+- The system will process your inputs using the trained Random Forest model
+
+**4. View Results**
+
 The app will display:
-•	Predicted sales revenue
-•	Insights based on the input variables
+- Predicted sales revenue
+- Insights based on the input variables
+
 These outputs can be used to support pricing, sales planning, and marketing decisions.
 
-5. Experiment with Scenarios
-To maximize value:
-•	Adjust input variables (e.g., increase price or apply discounts)
-•	Re-run predictions to simulate different business scenarios
-•	Compare outcomes to identify optimal strategies
+**5. Experiment with Scenarios**
 
-6. Notes
+To maximize value:
+- Adjust input variables (e.g., increase price or apply discounts)
+- Re-run predictions to simulate different business scenarios
+- Compare outcomes to identify optimal strategies
+
+**6. Notes**
+
 The model is trained on historical sales data and performs best with inputs similar to the training distribution. Extreme or unrealistic values may produce less reliable predictions.
 This interface enables real-time, data-driven decision-making without requiring direct interaction with the underlying machine learning code.
 
-CONCLUSION
+## CONCLUSION
+
 This project successfully developed and deployed a high-performing machine learning model for sales revenue prediction, with the Random Forest model achieving the best accuracy. The analysis revealed that revenue is primarily driven by units sold and price per unit, while other factors such as discounts, seasonality, and marketing play supporting roles. By integrating the model into a Streamlit application, the solution provides an accessible, real-time decision-support tool that enables businesses to simulate scenarios, optimize strategies, and make informed, data-driven decisions to improve revenue outcomes.
